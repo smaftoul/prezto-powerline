@@ -8,6 +8,8 @@
 # Authors:
 #   David Rice <me@davidjrice.co.uk>
 
+pmodload 'helper'
+
 function prompt_powerline_pwd {
   local pwd="${PWD/#$HOME/~}"
 
@@ -19,45 +21,56 @@ function prompt_powerline_pwd {
   fi
 }
 
-function prompt_powerline_git_dir {
-  _prompt_powerline_git_dir=${$(git rev-parse --git-dir 2>/dev/null):A}
-}
-
 function prompt_powerline_time_since_commit {
   _prompt_powerline_time_since_commit=''
-  if [[ ! -z "${_prompt_powerline_git_dir}" ]] ; then
-    if $(git rev-list -n 1 HEAD &>/dev/null) ; then
-      local lc_time=$(git show -s --format='%at' 2>/dev/null)
-      local seconds_since_last_commit=$((${EPOCHSECONDS} - lc_time))
+  if $(git rev-list -n 1 HEAD &>/dev/null) ; then
+    local lc_time=$(git show -s --format='%at' 2>/dev/null)
+    local seconds_since_last_commit=$((${EPOCHSECONDS} - lc_time))
 
-      # totals
-      local MINUTES=$((seconds_since_last_commit / 60))
-      local HOURS=$((seconds_since_last_commit/3600))
+    # totals
+    local MINUTES=$((seconds_since_last_commit / 60))
+    local HOURS=$((seconds_since_last_commit/3600))
 
-      # sub-hours and sub-minutes
-      local DAYS=$((seconds_since_last_commit / 86400))
-      local SUB_HOURS=$((HOURS % 24))
-      local SUB_MINUTES=$((MINUTES % 60))
+    # sub-hours and sub-minutes
+    local DAYS=$((seconds_since_last_commit / 86400))
+    local SUB_HOURS=$((HOURS % 24))
+    local SUB_MINUTES=$((MINUTES % 60))
 
-      if [ "$HOURS" -gt 24 ]; then
-        _prompt_powerline_time_since_commit='%F{21}'${DAYS}'%F{7}d%F{21}'${SUB_HOURS}'%F{7}h%F{21}'${SUB_MINUTES}'%F{7}m%f'
-      elif [ "$MINUTES" -gt 60 ]; then
-        _prompt_powerline_time_since_commit='%F{21}'${HOURS}'%F{7}h%F{21}'${SUB_MINUTES}'%F{7}m%f'
-      else
-        _prompt_powerline_time_since_commit='%F{21}'${MINUTES}'%F{7}m%f'
-      fi
+    if [ "$HOURS" -gt 24 ]; then
+      _prompt_powerline_time_since_commit='%F{21}'${DAYS}'%F{7}d%F{21}'${SUB_HOURS}'%F{7}h%F{21}'${SUB_MINUTES}'%F{7}m%f'
+    elif [ "$MINUTES" -gt 60 ]; then
+      _prompt_powerline_time_since_commit='%F{21}'${HOURS}'%F{7}h%F{21}'${SUB_MINUTES}'%F{7}m%f'
+    else
+      _prompt_powerline_time_since_commit='%F{21}'${MINUTES}'%F{7}m%f'
     fi
   fi
 }
 
-function prompt_powerline_env_version {
-  _prompt_powerline_env_version=
-  if [[ ! -z "${_prompt_powerline_git_dir}" ]] ; then
-    _prompt_powerline_env_version=$(cat /dev/null "${_prompt_powerline_git_dir}"/../.*-version(N[1]) 2>/dev/null)
+function prompt_powerline_env_versions {
+  local -a versions
+  versions=()
+  if (( $+functions[node-info] )); then
+    versions+=(${node_info[version]})
   fi
+  if (( $+functions[ruby-info] )); then
+    versions+=(${ruby_info[version]})
+  fi
+  _prompt_powerline_env_versions=${(j: %F{19} %F{18}:)versions}
 }
 
 function prompt_powerline_precmd {
+  local fmt_branch
+
+  if (( $+functions[git-info] )); then
+    git-info
+  fi
+  if (( $+functions[node-info] )); then
+    node-info
+  fi
+  if (( $+functions[ruby-info] )); then
+    ruby-info
+  fi
+
   # Check for untracked files or updated submodules since vcs_info doesn't.
   if [[ ! -z $(git ls-files --other --exclude-standard 2> /dev/null) ]]; then
     fmt_branch=$'\ue0a0'" %b%u%c${__PROMPT_SKWP_COLORS[4]}●%f"
@@ -68,9 +81,8 @@ function prompt_powerline_precmd {
 
   vcs_info 'prompt'
   prompt_powerline_pwd
-  prompt_powerline_git_dir
   prompt_powerline_time_since_commit
-  prompt_powerline_env_version
+  prompt_powerline_env_versions
 }
 
 function prompt_powerline_setup {
@@ -85,7 +97,8 @@ function prompt_powerline_setup {
   add-zsh-hook precmd prompt_powerline_precmd
 
   # Use extended color pallete if available.
-  if [[ $TERM = *256color* || $TERM = *rxvt* ]]; then
+  case $TERM in
+    *256color*|*rxvt)
     __PROMPT_SKWP_COLORS=(
       "%F{81}"  # turquoise
       "%F{166}" # orange
@@ -93,7 +106,8 @@ function prompt_powerline_setup {
       "%F{161}" # hotpink
       "%F{118}" # limegreen
     )
-  else
+    ;;
+    *)
     __PROMPT_SKWP_COLORS=(
       "%F{cyan}"
       "%F{yellow}"
@@ -101,7 +115,8 @@ function prompt_powerline_setup {
       "%F{red}"
       "%F{green}"
     )
-  fi
+    ;;
+  esac
 
   # Enable VCS systems you use.
   zstyle ':vcs_info:*' enable bzr git hg svn
@@ -132,8 +147,11 @@ function prompt_powerline_setup {
   zstyle ':vcs_info:*:prompt:*' formats       "${fmt_branch}"
   zstyle ':vcs_info:*:prompt:*' nvcsformats   ""
 
+  zstyle ':prezto:module:ruby:info:version' format '💎 %v'
+  zstyle ':prezto:module:node:info:version' format '🚀 %v'
+
   PROMPT='%F{15}%K{2} ${_prompt_powerline_pwd} %F{2}%K{4}'$'\uE0B0''%F{15}%K{4} ${vcs_info_msg_0_} %F{4}%K{18}'$'\uE0B0''%f%K{18} ${_prompt_powerline_time_since_commit} %k%F{18}'$'\uE0B0''%f '
-  RPROMPT='%F{21}'$'\uE0B2''%F{19}%K{21} ${_prompt_powerline_env_version} %f%k'
+  RPROMPT='%F{7}'$'\uE0B2''%F{18}%K{7} ${_prompt_powerline_env_versions} %f%k'
 }
 
 prompt_powerline_setup "$@"
