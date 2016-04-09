@@ -47,16 +47,24 @@ function prompt_powerline__expand_base16() {
 }
 
 function prompt_powerline__segment() {
-  local bg fg
-  [[ -n $1 ]] && bg="%K{$1}" || bg='%k'
-  [[ -n $2 ]] && fg="%F{$2}" || fg='%f'
-  if [[ $CURRENT_BG != 'default' && $1 != $CURRENT_BG ]]; then
-    REPLY+=" %{$bg%F{$CURRENT_BG}%}%{$fg%} "
+  local bg fg sep_fg
+  bg=${1:+%K{$1}}
+  : ${bg:=%k}
+  fg=${2:+%F{$2}}
+  : ${fg:=%f}
+
+  if [[ ${CURRENT_BG-unset} != 'unset' && $1 != $CURRENT_BG ]]; then
+    sep_fg="%F{${CURRENT_BG:-00}}"
+    REPLY+=" %{$bg$sep_fg%}%{$fg%} "
   else
     REPLY+="%{$bg$fg%}"
+    if [[ ${CURRENT_BG-unset} == 'unset' ]] ; then
+      REPLY+=' '
+    fi
   fi
-  CURRENT_BG=$1
   [[ -n $3 ]] && REPLY+=$3
+  CURRENT_BG=$1
+  CURRENT_FG=$2
   return 0
 }
 
@@ -66,26 +74,33 @@ function prompt_powerline__end() {
   else
     REPLY+='%{%k%f%} '
   fi
-  CURRENT_BG='default'
+  unset CURRENT_BG
+  unset CURRENT_FG
 }
 
 function rprompt_powerline__segment() {
-  local bg fg
-  [[ -n $1 ]] && bg="%K{$1}" || bg='%k'
-  [[ -n $2 ]] && fg="%F{$2}" || fg='%f'
-  if [[ $CURRENT_BG == 'default' && $1 != $CURRENT_BG ]]; then
-    REPLY+="%{%F{$1}%}%{$bg$fg%} "
-  else
+  local bg fg sep_fg
+  bg=${1:+%K{$1}}
+  : ${bg:=%k}
+  fg=${2:+%F{$2}}
+  : ${fg:=%f}
+
+  if [[ $1 != $CURRENT_BG ]]; then
+    sep_fg="%F{${1:-00}}"
+    REPLY+=" %{$sep_fg%}%{$bg$fg%} "
+  elif [[ ${CURRENT_BG-unset} != 'unset' ]] ; then
     REPLY+="%{$bg$fg%}"
   fi
-  CURRENT_BG=$1
   [[ -n $3 ]] && REPLY+=$3
+  CURRENT_BG=$1
+  CURRENT_FG=$2
   return 0
 }
 
 function rprompt_powerline__end() {
-  REPLY+='%{%k%f%}'
-  CURRENT_BG='default'
+  REPLY+=' %{%k%f%}'
+  unset CURRENT_BG
+  unset CURRENT_FG
   return 0
 }
 
@@ -120,8 +135,7 @@ function prompt_powerline__envs() {
   if (( $+functions[ruby-info] )); then
     versions+=(${ruby_info[version]})
   fi
-  sep=' %{%F{07}%} %{%F{0D}%}'
-  REPLY="${(pj:$sep:)versions}"
+  REPLY="${(pj:  :)versions}"
   return 0
 }
 
@@ -154,8 +168,9 @@ function prompt_powerline_setup() {
   setopt LOCAL_OPTIONS
   unsetopt XTRACE KSH_ARRAYS
   prompt_opts=(cr percent subst)
-  local REPLY
-  local CURRENT_BG='default'
+  local CURRENT_BG CURRENT_FG REPLY
+  unset CURRENT_BG
+  unset CURRENT_FG
 
   zmodload zsh/datetime
   autoload -Uz add-zsh-hook
@@ -191,7 +206,7 @@ function prompt_powerline_setup() {
   zstyle ':prezto:module:node:info:version' format '🚀 %v'
 
   REPLY=''
-  prompt_powerline__segment 0B 07 ' %~'
+  prompt_powerline__segment 0B 07 '%~'
   prompt_powerline__segment 02 07 '${(e)git_info[ref]}'
   prompt_powerline__segment 02 07 '${(e)git_info[status]}'
   prompt_powerline__segment 02 07 '${(e)${git_info[tracking]:+" %F{05}%F{07} $git_info[tracking]"}}'
@@ -202,7 +217,7 @@ function prompt_powerline_setup() {
   PROMPT=$REPLY
 
   REPLY=''
-  rprompt_powerline__segment 06 0D '${_prompt_powerline_envs} '
+  rprompt_powerline__segment 06 0D '${_prompt_powerline_envs}'
   rprompt_powerline__end
   prompt_powerline__expand_base16
   RPROMPT=$REPLY
