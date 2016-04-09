@@ -11,44 +11,108 @@
 
 pmodload 'helper'
 
-function prompt_powerline_pwd {
-  local pwd="${PWD/#$HOME/~}"
+typeset -Ag _PROMPT_POWERLINE_BASE16
+_PROMPT_POWERLINE_BASE16=(
+  00  0
+  08  1
+  0B  2
+  0A  3
+  0D  4
+  0E  5
+  0C  6
+  05  7
+  03  8
+  08  9
+  0B 10
+  0A 11
+  0D 12
+  0E 13
+  0C 14
+  07 15
+  09 16
+  0F 17
+  01 18
+  02 19
+  04 20
+  06 21
+)
+typeset -Agr _PROMPT_POWERLINE_BASE16
 
-  if [[ "$pwd" == (#m)[/~] ]]; then
-    _prompt_powerline_pwd="$MATCH"
-    unset MATCH
+function prompt_powerline__expand_base16() {
+  setopt LOCAL_OPTIONS
+  setopt EXTENDED_GLOB
+
+  REPLY=${REPLY//(#b)%([FK])\{(0[0-9a-fA-F])\}/%$match[1]'{'${_PROMPT_POWERLINE_BASE16[$match[2]]}'}'}
+  return 0
+}
+
+function prompt_powerline__segment() {
+  local bg fg
+  [[ -n $1 ]] && bg="%K{$1}" || bg='%k'
+  [[ -n $2 ]] && fg="%F{$2}" || fg='%f'
+  if [[ $CURRENT_BG != 'default' && $1 != $CURRENT_BG ]]; then
+    REPLY+=" %{$bg%F{$CURRENT_BG}%}%{$fg%} "
   else
-    _prompt_powerline_pwd="${${${${(@j:/:M)${(@s:/:)pwd}##.#?}:h}%/}//\%/%%}/${${pwd:t}//\%/%%}"
+    REPLY+="%{$bg$fg%}"
   fi
+  CURRENT_BG=$1
+  [[ -n $3 ]] && REPLY+=$3
+  return 0
 }
 
-function prompt_powerline_time_since_commit {
-  _prompt_powerline_time_since_commit=''
-  if $(git rev-list -n 1 HEAD &>/dev/null) ; then
-    local lc_time=$(git show -s --format='%at' 2>/dev/null)
-    local seconds_since_last_commit=$((${EPOCHSECONDS} - lc_time))
+function prompt_powerline__end() {
+  if [[ -n $CURRENT_BG ]]; then
+    REPLY+=" %{%k%{%F{$CURRENT_BG}%}%}%{%f%} "
+  else
+    REPLY+='%{%k%f%} '
+  fi
+  CURRENT_BG='default'
+}
 
-    # totals
-    local MINUTES=$((seconds_since_last_commit / 60))
-    local HOURS=$((seconds_since_last_commit/3600))
+function rprompt_powerline__segment() {
+  local bg fg
+  [[ -n $1 ]] && bg="%K{$1}" || bg='%k'
+  [[ -n $2 ]] && fg="%F{$2}" || fg='%f'
+  if [[ $CURRENT_BG == 'default' && $1 != $CURRENT_BG ]]; then
+    REPLY+="%{%F{$1}%}%{$bg$fg%} "
+  else
+    REPLY+="%{$bg$fg%}"
+  fi
+  CURRENT_BG=$1
+  [[ -n $3 ]] && REPLY+=$3
+  return 0
+}
 
-    # sub-hours and sub-minutes
-    local DAYS=$((seconds_since_last_commit / 86400))
-    local SUB_HOURS=$((HOURS % 24))
-    local SUB_MINUTES=$((MINUTES % 60))
+function rprompt_powerline__end() {
+  REPLY+='%{%k%f%}'
+  CURRENT_BG='default'
+  return 0
+}
 
-    if [ "$HOURS" -gt 24 ]; then
-      _prompt_powerline_time_since_commit='%F{21}'${DAYS}'%F{7}d%F{21}'${SUB_HOURS}'%F{7}h%F{21}'${SUB_MINUTES}'%F{7}m%f'
-    elif [ "$MINUTES" -gt 60 ]; then
-      _prompt_powerline_time_since_commit='%F{21}'${HOURS}'%F{7}h%F{21}'${SUB_MINUTES}'%F{7}m%f'
-    else
-      _prompt_powerline_time_since_commit='%F{21}'${MINUTES}'%F{7}m%f'
+function prompt_powerline__git_elapsed() {
+  local latest remainder days hours minutes
+
+  latest=$(($(git show -s --format='%at' 2>/dev/null) + 0))
+  if ((latest > 0)) ; then
+    remainder=$((EPOCHSECONDS - latest))
+    if ((remainder > 86400)) ; then
+      days=$((remainder / 86400))
+      remainder=$((remainder % 86400))
+      REPLY+="%{%F{06}%}${days}%{%F{05}%}d"
     fi
+    if ((remainder > 3600)) ; then
+      hours=$(($remainder / 3600))
+      remainder=$((remainder % 3600))
+      REPLY+="%{%F{06}%}${hours}%{%F{05}%}h"
+    fi
+    minutes=$((remainder / 60))
+    REPLY+="%{%F{06}%}${minutes}%{%F{05}%}m"
   fi
+  return 0
 }
 
-function prompt_powerline_env_versions {
-  local -a versions
+function prompt_powerline__envs() {
+  local -a versions sep
   versions=()
   if (( $+functions[node-info] )); then
     versions+=(${node_info[version]})
@@ -56,11 +120,13 @@ function prompt_powerline_env_versions {
   if (( $+functions[ruby-info] )); then
     versions+=(${ruby_info[version]})
   fi
-  _prompt_powerline_env_versions=${(j: %F{19} %F{18}:)versions}
+  sep=' %{%F{07}%} %{%F{0D}%}'
+  REPLY="${(pj:$sep:)versions}"
+  return 0
 }
 
-function prompt_powerline_precmd {
-  local fmt_branch
+function prompt_powerline_precmd() {
+  local REPLY
 
   if (( $+functions[git-info] )); then
     git-info
@@ -72,61 +138,76 @@ function prompt_powerline_precmd {
     ruby-info
   fi
 
-  prompt_powerline_pwd
-  prompt_powerline_time_since_commit
-  prompt_powerline_env_versions
+  REPLY=''
+  prompt_powerline__git_elapsed
+  prompt_powerline__expand_base16
+  _prompt_powerline_git_elapsed=$REPLY
+
+  REPLY=''
+  prompt_powerline__envs
+  prompt_powerline__expand_base16
+  _prompt_powerline_envs=$REPLY
+  return 0
 }
 
-function prompt_powerline_setup {
+function prompt_powerline_setup() {
   setopt LOCAL_OPTIONS
   unsetopt XTRACE KSH_ARRAYS
   prompt_opts=(cr percent subst)
+  local REPLY
+  local CURRENT_BG='default'
 
   zmodload zsh/datetime
   autoload -Uz add-zsh-hook
 
   add-zsh-hook precmd prompt_powerline_precmd
 
-  # Use extended color pallete if available.
-  case $TERM in
-    *256color*|*rxvt)
-    __PROMPT_SKWP_COLORS=(
-      "%F{81}"  # turquoise
-      "%F{166}" # orange
-      "%F{135}" # purple
-      "%F{161}" # hotpink
-      "%F{118}" # limegreen
-    )
-    ;;
-    *)
-    __PROMPT_SKWP_COLORS=(
-      "%F{cyan}"
-      "%F{yellow}"
-      "%F{magenta}"
-      "%F{red}"
-      "%F{green}"
-    )
-    ;;
-  esac
-
-  zstyle ':prezto:module:git:info:branch' format ' %b'
-  zstyle ':prezto:module:git:info:commit' format '➦ %.7c'
-  zstyle ':prezto:module:git:info:position' format '%p'
-  zstyle ':prezto:module:git:info:action' format ' %F{21} %F{15}%s'
-  zstyle ':prezto:module:git:info:clean' format ' ✔'
-  zstyle ':prezto:module:git:info:indexed' format ' ●'
+  zstyle ':prezto:module:git:info' verbose 'yes'
+  zstyle ':prezto:module:git:info:branch'    format ' %b'
+  zstyle ':prezto:module:git:info:commit'    format '➦ %.7c'
+  zstyle ':prezto:module:git:info:position'  format '%p'
+  zstyle ':prezto:module:git:info:action'    format '%s'
+  zstyle ':prezto:module:git:info:action:cherry-pick-sequence' format 'cherry-pick'
+  zstyle ':prezto:module:git:info:action:rebase-interactive'   format 'rebase'
+  zstyle ':prezto:module:git:info:action:rebase-merge'         format 'rebase'
+  zstyle ':prezto:module:git:info:indexed'   format ' ●'
   zstyle ':prezto:module:git:info:unindexed' format ' ✚'
-  zstyle ':prezto:module:git:info:untracked' format ' …'
-  zstyle ':prezto:module:git:info:stashed' format ' ⚑'
-  zstyle ':prezto:module:git:info:keys' format \
+  zstyle ':prezto:module:git:info:untracked' format ' ?'
+  zstyle ':prezto:module:git:info:unmerged'  format ' 💥 '
+  zstyle ':prezto:module:git:info:added'     format ' ●'
+  zstyle ':prezto:module:git:info:modified'  format ' ±'
+  zstyle ':prezto:module:git:info:deleted'   format ' ±'
+  zstyle ':prezto:module:git:info:renamed'   format ' ●'
+  zstyle ':prezto:module:git:info:stashed'   format ' ≡'
+  zstyle ':prezto:module:git:info:ahead'     format '⇡%A'
+  zstyle ':prezto:module:git:info:behind'    format '%B⇣'
+  zstyle ':prezto:module:git:info:keys'      format \
+    'action' '%s' \
     'ref' '$(coalesce "%b" "%p" "%c")' \
-    'status' '%C$(coalesce "%I" "%i" "%u" "%S")%s'
+    'status' '$(coalesce "%U" "%u" "%I" "%m" "%d" "%i" "%a" "%r")%S' \
+    'tracking' '%B%A'
 
   zstyle ':prezto:module:ruby:info:version' format '💎 %v'
   zstyle ':prezto:module:node:info:version' format '🚀 %v'
 
-  PROMPT='%F{15}%K{2} ${_prompt_powerline_pwd} %F{2}%K{4}'$'\uE0B0''%F{15}%K{4} ${(e)git_info[ref]}${(e)git_info[status]} %F{4}%K{18}'$'\uE0B0''%f%K{18} ${_prompt_powerline_time_since_commit} %k%F{18}'$'\uE0B0''%f '
-  RPROMPT='%F{7}'$'\uE0B2''%F{18}%K{7} ${_prompt_powerline_env_versions} %f%k'
+  REPLY=''
+  prompt_powerline__segment 0B 07 ' %~'
+  prompt_powerline__segment 02 07 '${(e)git_info[ref]}'
+  prompt_powerline__segment 02 07 '${(e)git_info[status]}'
+  prompt_powerline__segment 02 07 '${(e)${git_info[tracking]:+" %F{05}%F{07} $git_info[tracking]"}}'
+  prompt_powerline__segment 02 07 '${(e)${git_info[action]:+" %F{05}%F{07} $git_info[action]"}}'
+  prompt_powerline__segment 01 07 '${_prompt_powerline_git_elapsed}'
+  prompt_powerline__end
+  prompt_powerline__expand_base16
+  PROMPT=$REPLY
+
+  REPLY=''
+  rprompt_powerline__segment 06 0D '${_prompt_powerline_envs} '
+  rprompt_powerline__end
+  prompt_powerline__expand_base16
+  RPROMPT=$REPLY
+
+  return 0
 }
 
 prompt_powerline_setup "$@"
