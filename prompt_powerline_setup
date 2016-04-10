@@ -217,7 +217,8 @@ function prompt_powerline_setup() {
   PROMPT=$REPLY
 
   REPLY=''
-  rprompt_powerline__segment 06 0D '${_prompt_powerline_envs}'
+  rprompt_powerline__segment '' '' '${_prompt_powerline_envs}'
+  rprompt_powerline__segment 06 02 '!%!'
   rprompt_powerline__end
   prompt_powerline__expand_base16
   RPROMPT=$REPLY
