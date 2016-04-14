@@ -129,13 +129,14 @@ function prompt_powerline__git_elapsed() {
 function prompt_powerline__envs() {
   local -a versions sep
   versions=()
-  if (( $+functions[node-info] )); then
+  if [[ $+node_info[version] && -n $(node-app-root) ]]; then
     versions+=(${node_info[version]})
   fi
-  if (( $+functions[ruby-info] )); then
+  if [[ $+ruby_info[version] > 0 && -n $(ruby-app-root) ]]; then
     versions+=(${ruby_info[version]})
   fi
-  REPLY="${(pj:  :)versions}"
+  sep=' %{%F{02}%}%{%F{05}%} '
+  REPLY="${(pj:$sep:)versions}"
   return 0
 }
 
@@ -217,7 +218,7 @@ function prompt_powerline_setup() {
   PROMPT=$REPLY
 
   REPLY=''
-  rprompt_powerline__segment '' '' '${_prompt_powerline_envs}'
+  rprompt_powerline__segment 01 05 '${_prompt_powerline_envs}'
   rprompt_powerline__segment 06 02 '!%!'
   rprompt_powerline__end
   prompt_powerline__expand_base16
