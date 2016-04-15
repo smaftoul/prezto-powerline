@@ -207,7 +207,7 @@ function prompt_powerline_setup() {
   zstyle ':prezto:module:node:info:version' format '🚀 %v'
 
   REPLY=''
-  prompt_powerline__segment 0B 07 '%~'
+  prompt_powerline__segment '%(?:2:1)' 07 '%~' # TODO: support base16 within conditional, e.g. %(?:0B:08)
   prompt_powerline__segment 02 07 '${(e)git_info[ref]}'
   prompt_powerline__segment 02 07 '${(e)git_info[status]}'
   prompt_powerline__segment 02 07 '${(e)${git_info[tracking]:+" %F{05}%F{07} $git_info[tracking]"}}'
@@ -219,6 +219,7 @@ function prompt_powerline_setup() {
 
   REPLY=''
   rprompt_powerline__segment 01 05 '${_prompt_powerline_envs}'
+  rprompt_powerline__segment 06 01 '%(?::?%? %F{05}%F{01} )'
   rprompt_powerline__segment 06 02 '!%!'
   rprompt_powerline__end
   prompt_powerline__expand_base16
