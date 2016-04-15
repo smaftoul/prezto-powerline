@@ -129,7 +129,7 @@ function prompt_powerline__git_elapsed() {
 function prompt_powerline__envs() {
   local -a versions sep
   versions=()
-  if [[ $+node_info[version] && -n $(node-app-root) ]]; then
+  if [[ $+node_info[version] > 0 && -n $(node-app-root) ]]; then
     versions+=(${node_info[version]})
   fi
   if [[ $+ruby_info[version] > 0 && -n $(ruby-app-root) ]]; then
