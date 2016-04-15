@@ -135,6 +135,9 @@ function prompt_powerline__envs() {
   if [[ $+ruby_info[version] > 0 && -n $(ruby-app-root) ]]; then
     versions+=(${ruby_info[version]})
   fi
+  if (( $+functions[java-app-root] )) && java-app-root &>/dev/null ; then
+    versions+='☕ ' # no standard rvm/rbenv/npm/nodenv for Java
+  fi
   sep=' %{%F{02}%}%{%F{05}%} '
   REPLY="${(pj:$sep:)versions}"
   return 0
