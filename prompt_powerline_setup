@@ -1,9 +1,12 @@
 #
-# A ZSH theme based on a combination of the skwp prezto theme and the robl ohmyzsh theme.
-#  * env (ruby, node) info shown on the right
-#  * Git branch info on the left
-#  * Single line prompt
-#  * Time since last commit on the left
+# A ZSH theme inspired by VIM Powerline that includes…
+#
+#  * … a single line prompt
+#  * … project environment (java, node, ruby) and version (node, ruby)
+#  * … compact git status and time since last commit
+#  * … most recent history event
+#  * … indication of non-zero exit status
+#  * … base16 compatible color scheme
 #
 # Authors:
 #   Tim Taylor <tim@tool-man.org>
