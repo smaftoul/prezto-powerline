@@ -201,13 +201,14 @@ function prompt_powerline_setup() {
   zstyle ':prezto:module:git:info:deleted'   format ' ±'
   zstyle ':prezto:module:git:info:renamed'   format ' ●'
   zstyle ':prezto:module:git:info:stashed'   format ' ≡'
-  zstyle ':prezto:module:git:info:ahead'     format '⇡%A'
-  zstyle ':prezto:module:git:info:behind'    format '%B⇣'
+  zstyle ':prezto:module:git:info:ahead'     format '↑%A'
+  zstyle ':prezto:module:git:info:behind'    format '%B↓'
+  zstyle ':prezto:module:git:info:diverged'  format '%B⇵%A'
   zstyle ':prezto:module:git:info:keys'      format \
     'action' '%s' \
     'ref' '$(coalesce "%b" "%p" "%c")' \
     'status' '$(coalesce "%U" "%u" "%I" "%m" "%d" "%i" "%a" "%r")%S' \
-    'tracking' '%B%A'
+    'tracking' '%V%B%A'
 
   zstyle ':prezto:module:ruby:info:version' format '💎 %v'
   zstyle ':prezto:module:node:info:version' format '🚀 %v'
