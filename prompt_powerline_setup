@@ -184,7 +184,6 @@ function prompt_powerline_setup() {
 
   add-zsh-hook precmd prompt_powerline_precmd
 
-  zstyle ':prezto:module:git:info' verbose 'yes'
   zstyle ':prezto:module:git:info:branch'    format ' %b'
   zstyle ':prezto:module:git:info:commit'    format '➦ %.7c'
   zstyle ':prezto:module:git:info:position'  format '%p'
