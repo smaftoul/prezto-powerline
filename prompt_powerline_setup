@@ -184,7 +184,6 @@ function prompt_powerline_setup() {
 
   add-zsh-hook precmd prompt_powerline_precmd
 
-  zstyle ':prezto:module:git:info' verbose 'yes'
   zstyle ':prezto:module:git:info:branch'    format ' %b'
   zstyle ':prezto:module:git:info:commit'    format '➦ %.7c'
   zstyle ':prezto:module:git:info:position'  format '%p'
@@ -192,22 +191,23 @@ function prompt_powerline_setup() {
   zstyle ':prezto:module:git:info:action:cherry-pick-sequence' format 'cherry-pick'
   zstyle ':prezto:module:git:info:action:rebase-interactive'   format 'rebase'
   zstyle ':prezto:module:git:info:action:rebase-merge'         format 'rebase'
-  zstyle ':prezto:module:git:info:indexed'   format ' ●'
-  zstyle ':prezto:module:git:info:unindexed' format ' ✚'
-  zstyle ':prezto:module:git:info:untracked' format ' ?'
+  zstyle ':prezto:module:git:info:indexed'   format ' ⦿'
+  zstyle ':prezto:module:git:info:unindexed' format ' ●'
+  zstyle ':prezto:module:git:info:untracked' format ' ○'
   zstyle ':prezto:module:git:info:unmerged'  format ' 💥 '
-  zstyle ':prezto:module:git:info:added'     format ' ●'
-  zstyle ':prezto:module:git:info:modified'  format ' ±'
-  zstyle ':prezto:module:git:info:deleted'   format ' ±'
-  zstyle ':prezto:module:git:info:renamed'   format ' ●'
+  zstyle ':prezto:module:git:info:added'     format ' ⦿'
+  zstyle ':prezto:module:git:info:modified'  format ' ●'
+  zstyle ':prezto:module:git:info:deleted'   format ' ●'
+  zstyle ':prezto:module:git:info:renamed'   format ' ⦿'
   zstyle ':prezto:module:git:info:stashed'   format ' ≡'
-  zstyle ':prezto:module:git:info:ahead'     format '⇡%A'
-  zstyle ':prezto:module:git:info:behind'    format '%B⇣'
+  zstyle ':prezto:module:git:info:ahead'     format '↑%A'
+  zstyle ':prezto:module:git:info:behind'    format '%B↓'
+  zstyle ':prezto:module:git:info:diverged'  format '%B⇵%A'
   zstyle ':prezto:module:git:info:keys'      format \
     'action' '%s' \
     'ref' '$(coalesce "%b" "%p" "%c")' \
     'status' '$(coalesce "%U" "%u" "%I" "%m" "%d" "%i" "%a" "%r")%S' \
-    'tracking' '%B%A'
+    'tracking' '%V%B%A'
 
   zstyle ':prezto:module:ruby:info:version' format '💎 %v'
   zstyle ':prezto:module:node:info:version' format '🚀 %v'
